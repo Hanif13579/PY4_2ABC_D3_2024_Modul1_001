@@ -14,6 +14,21 @@ class CounterView extends StatefulWidget {
 class _CounterViewState extends State<CounterView> {
   final CounterController _controller = CounterController();
   final TextEditingController _stepController = TextEditingController(text: '1');
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  // Task 3: Load data dari Shared Preferences
+  Future<void> _loadData() async {
+    await _controller.init(widget.username);
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   @override
   void dispose() {
@@ -27,8 +42,7 @@ class _CounterViewState extends State<CounterView> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Konfirmasi Logout"),
-          content: const Text(
-              "Apakah Anda yakin? Data yang belum disimpan mungkin akan hilang."),
+          content: const Text("Apakah Anda yakin ingin keluar?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -70,9 +84,6 @@ class _CounterViewState extends State<CounterView> {
             onPressed: () {
               Navigator.pop(ctx);
               setState(() => _controller.reset());
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Counter telah di-reset!')),
-              );
             },
             child: const Text('Reset', style: TextStyle(color: Colors.orange)),
           ),
@@ -90,6 +101,13 @@ class _CounterViewState extends State<CounterView> {
 
   @override
   Widget build(BuildContext context) {
+    // Tampilkan loading saat data belum siap
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Logbook: ${widget.username}"),
@@ -105,7 +123,6 @@ class _CounterViewState extends State<CounterView> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-
             Text("Selamat Datang, ${widget.username}!"),
             const SizedBox(height: 10),
             const Text("Total Hitungan Anda:"),
@@ -113,14 +130,13 @@ class _CounterViewState extends State<CounterView> {
               '${_controller.value}',
               style: Theme.of(context).textTheme.headlineLarge,
             ),
-
             const SizedBox(height: 30),
 
-          
+            // TextField untuk Step
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Step: ', style: TextStyle(fontSize: 16)),
+                const Text('Step: '),
                 SizedBox(
                   width: 100,
                   child: TextField(
@@ -129,106 +145,79 @@ class _CounterViewState extends State<CounterView> {
                     textAlign: TextAlign.center,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                     ),
                     onChanged: (_) => _updateStep(),
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
 
-            // Task 1 : Tombol Tambah, Kurang, Reset
+            // Tombol Tambah, Kurang, Reset
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.icon(
+                ElevatedButton(
                   onPressed: () => setState(() => _controller.increment()),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Tambah'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                   ),
+                  child: const Text('Tambah'),
                 ),
                 const SizedBox(width: 10),
-                ElevatedButton.icon(
+                ElevatedButton(
                   onPressed: () => setState(() => _controller.decrement()),
-                  icon: const Icon(Icons.remove),
-                  label: const Text('Kurang'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
                   ),
+                  child: const Text('Kurang'),
                 ),
                 const SizedBox(width: 10),
-                ElevatedButton.icon(
+                ElevatedButton(
                   onPressed: _handleReset,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Reset'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
                   ),
+                  child: const Text('Reset'),
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            const Divider(),
 
-            const SizedBox(height: 30),
-            const Divider(thickness: 2),
-
-            // Task 2: History Logger 5 terakhir
+            // History
             const Text(
-              'Riwayat Aktivitas (5 Terakhir):',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              'Riwayat (5 Terakhir):',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-
-            // ListView 
             Expanded(
               child: _controller.history.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Belum ada aktivitas',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
+                  ? const Center(child: Text('Belum ada aktivitas'))
                   : ListView.builder(
                       itemCount: _controller.history.length,
                       itemBuilder: (context, index) {
                         final entry = _controller.history[index];
+                        Color bgColor = Colors.grey.shade100;
                         
-                        // Homework: warna berbeda untuk Tambah warna hijau dan Kurang warna merah
-                        Color tileColor = Colors.grey.shade100;
                         if (entry.contains('Tambah')) {
-                          tileColor = Colors.green.shade50;
-                        } else if (entry.contains('kurang')) {
-                          tileColor = Colors.red.shade50;
-                        } else if (entry.contains('reset')) {
-                          tileColor = Colors.orange.shade50;
+                          bgColor = Colors.green.shade100;
+                        } else if (entry.contains('Kurang')) {
+                          bgColor = Colors.red.shade100;
+                        } else if (entry.contains('Reset')) {
+                          bgColor = Colors.orange.shade100;
                         }
 
                         return Card(
-                          color: tileColor,
-                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          color: bgColor,
                           child: ListTile(
                             leading: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.indigo,
-                              child: Text(
-                                '${index + 1}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              child: Text('${index + 1}'),
                             ),
-                            title: Text(
-                              entry,
-                              style: const TextStyle(fontSize: 14),
-                            ),
+                            title: Text(entry),
                           ),
                         );
                       },
