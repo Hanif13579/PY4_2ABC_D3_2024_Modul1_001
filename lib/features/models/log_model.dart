@@ -1,29 +1,31 @@
-class LogModel {   
-  final String title;   
-  final String timestamp;   
-  final String description; 
- 
-  LogModel({     
-    required this.title,     
-    required this.timestamp,     
-    required this.description, 
+class LogModel {
+  final String title;
+  final String timestamp;
+  final String description;
+  final String category;
+
+  LogModel({
+    required this.title,
+    required this.timestamp,
+    required this.description,
+    this.category = 'Umum',
   });
- 
-  // Untuk Tugas HOTS: Konversi Map (JSON) ke Object   
-  factory LogModel.fromMap(Map<String, dynamic> map) {     
-    return LogModel(       
-      title: map['title'],       
-      timestamp: map['timestamp'],       
-      description: map['description'], 
-    ); 
-  } 
- 
-  // Konversi Object ke Map (JSON) untuk disimpan   
-  Map<String, dynamic> toMap() {     
-    return { 
-      'title': title, 
-      'timestamp': timestamp, 
-      'description': description, 
-    }; 
-  } 
-} 
+
+  factory LogModel.fromMap(Map<String, dynamic> map) {
+    return LogModel(
+      title: map['title'],
+      timestamp: map['timestamp'],
+      description: map['description'],
+      category: map['category'] ?? 'Umum',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'timestamp': timestamp,
+      'description': description,
+      'category': category,
+    };
+  }
+}

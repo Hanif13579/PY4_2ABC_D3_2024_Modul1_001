@@ -5,11 +5,17 @@ import '../models/log_model.dart';
 
 class LogController {
 
-  final ValueNotifier<List<LogModel>>
-      logsNotifier = ValueNotifier([]);
+  final ValueNotifier<List<LogModel>> logsNotifier = ValueNotifier([]);
+  final ValueNotifier<List<LogModel>> filteredLogs = ValueNotifier([]);
 
-  static const String _storageKey =
-      'user_logs_data';
+  static const String _storageKey = 'user_logs_data';
+
+  static const List<String> categories = [
+    'Umum',
+    'Pekerjaan',
+    'Pribadi',
+    'Urgent',
+  ];
 
 
   // CONSTRUCTOR
@@ -21,16 +27,17 @@ class LogController {
 
   // ADD
 
-  Future<void> addLog(String title,String desc) async {
+  Future<void> addLog(String title, String desc, String category) async {
 
     final newLog = LogModel(
       title: title,
       description: desc,
-      timestamp:
-          DateTime.now().toString(),
+      timestamp: DateTime.now().toString(),
+      category: category,
     );
 
-    logsNotifier.value = [...logsNotifier.value,newLog,];
+    logsNotifier.value = [...logsNotifier.value, newLog];
+    filteredLogs.value = logsNotifier.value;
 
     await saveToDisk();
   }
@@ -38,17 +45,21 @@ class LogController {
 
   // EDIT
 
-  Future<void> updateLog(int index,String title,String desc) async {
+  Future<void> updateLog(int index, String title, String desc, String category) async {
 
-    final currentLogs =List<LogModel>.from(logsNotifier.value);
+    final allLogs = List<LogModel>.from(logsNotifier.value);
 
-    currentLogs[index] = LogModel(
+    final originalIndex = allLogs.indexOf(filteredLogs.value[index]);
+
+    allLogs[originalIndex] = LogModel(
       title: title,
       description: desc,
       timestamp: DateTime.now().toString(),
+      category: category,
     );
 
-    logsNotifier.value = currentLogs;
+    logsNotifier.value = allLogs;
+    filteredLogs.value = allLogs;
 
     await saveToDisk();
   }
@@ -58,13 +69,30 @@ class LogController {
 
   Future<void> removeLog(int index) async {
 
-    final currentLogs = List<LogModel>.from(logsNotifier.value);
+    final allLogs = List<LogModel>.from(logsNotifier.value);
 
-    currentLogs.removeAt(index);
+    final target = filteredLogs.value[index];
+    allLogs.remove(target);
 
-    logsNotifier.value = currentLogs;
+    logsNotifier.value = allLogs;
+    filteredLogs.value = allLogs;
 
     await saveToDisk();
+  }
+
+
+  // SEARCH
+
+  void searchLog(String query) {
+
+    if (query.isEmpty) {
+      filteredLogs.value = logsNotifier.value;
+    } else {
+      filteredLogs.value = logsNotifier.value
+          .where((log) =>
+              log.title.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    }
   }
 
 
@@ -72,11 +100,13 @@ class LogController {
 
   Future<void> saveToDisk() async {
 
-    final prefs =await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
-    final encodedData = jsonEncode(logsNotifier.value.map((e) => e.toMap(),).toList(),);
+    final encodedData = jsonEncode(
+      logsNotifier.value.map((e) => e.toMap()).toList(),
+    );
 
-    await prefs.setString(_storageKey,encodedData);
+    await prefs.setString(_storageKey, encodedData);
 
     debugPrint("DATA SAVED");
   }
@@ -92,12 +122,14 @@ class LogController {
 
     if (data == null) {
       debugPrint("NO DATA FOUND");
+      filteredLogs.value = [];
       return;
     }
 
     final List decoded = jsonDecode(data);
 
-    logsNotifier.value =decoded.map((e) => LogModel.fromMap(e),).toList();
+    logsNotifier.value = decoded.map((e) => LogModel.fromMap(e)).toList();
+    filteredLogs.value = logsNotifier.value;
 
     debugPrint("DATA LOADED");
   }
